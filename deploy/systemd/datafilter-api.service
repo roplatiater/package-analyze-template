@@ -1,0 +1,14 @@
+[Unit]
+Description=DataFilter Pipeline API
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/datafilter/datafilter.env
+Environment=PYTHONPATH=/opt/datafilter/backend
+Environment=INPROCESS_WORKERS_ENABLED=false
+WorkingDirectory=/opt/datafilter
+ExecStart=/usr/bin/python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

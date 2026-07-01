@@ -1,0 +1,40 @@
+services:
+  api:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      METADATA_STORE: sqlite
+      INPROCESS_WORKERS_ENABLED: "false"
+      AUTO_PIPELINE_ENABLED: "true"
+      NOTIFICATION_ROBOT_ENABLED: "true"
+      DATA_ROOT: /app/backend/data
+      SQLITE_PATH: /app/backend/data/metadata.db
+    volumes: [pipeline-data:/app/backend/data]
+  worker-fetch:
+    build: .
+    environment: &worker-env
+      METADATA_STORE: sqlite
+      INPROCESS_WORKERS_ENABLED: "false"
+      AUTO_PIPELINE_ENABLED: "false"
+      NOTIFICATION_ROBOT_ENABLED: "false"
+      DATA_ROOT: /app/backend/data
+      SQLITE_PATH: /app/backend/data/metadata.db
+    volumes: [pipeline-data:/app/backend/data]
+    command: ["python", "-m", "app.worker", "fetch_raw"]
+  worker-unzip:
+    build: .
+    environment: *worker-env
+    volumes: [pipeline-data:/app/backend/data]
+    command: ["python", "-m", "app.worker", "unzip_package"]
+  worker-analyze:
+    build: .
+    environment: *worker-env
+    volumes: [pipeline-data:/app/backend/data]
+    command: ["python", "-m", "app.worker", "analyze_phrase_stats"]
+  worker-summarize:
+    build: .
+    environment: *worker-env
+    volumes: [pipeline-data:/app/backend/data]
+    command: ["python", "-m", "app.worker", "summarize_result"]
+volumes:
+  pipeline-data:

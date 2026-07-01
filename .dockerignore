@@ -1,0 +1,14 @@
+backend/data/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
+.pytest_cache/
+.venv/
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.git/
+.slim/deepwork/
+npm-debug.log*
+*.log

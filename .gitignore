@@ -1,0 +1,11 @@
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+backend/data/
+!backend/data/.gitkeep
+.slim/deepwork/

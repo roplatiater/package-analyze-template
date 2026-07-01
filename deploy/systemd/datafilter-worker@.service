@@ -1,0 +1,15 @@
+[Unit]
+Description=DataFilter Pipeline Worker %i
+After=network.target datafilter-api.service
+
+[Service]
+EnvironmentFile=/etc/datafilter/datafilter.env
+Environment=PYTHONPATH=/opt/datafilter/backend
+Environment=AUTO_PIPELINE_ENABLED=false
+Environment=NOTIFICATION_ROBOT_ENABLED=false
+WorkingDirectory=/opt/datafilter
+ExecStart=/usr/bin/python3 -m app.worker %i
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
