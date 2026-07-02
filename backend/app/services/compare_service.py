@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from app.core.config import settings
 from app.pipeline.models import StepStatus
-from app.repositories.artifact_store import ArtifactStore, stable_hash
+from app.repositories.artifact_store import ArtifactStore, read_json_artifact, stable_hash
 from app.repositories.run_store import RunStore
 
 
@@ -161,8 +161,7 @@ class CompareService:
 
     def _read_artifact_json(self, manifest_path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
         try:
-            rel = manifest["files"][0]["path"]
-            return json.loads((manifest_path.parent / rel).read_text(encoding="utf-8"))
+            return read_json_artifact(manifest_path, manifest["files"][0])
         except Exception as e:
             raise HTTPException(409, f"artifact file invalid: {e}")
 

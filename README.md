@@ -17,7 +17,7 @@ PYTHONPATH=backend /home/richard/usr/micromamba/envs/venv/bin/python -m uvicorn 
 
 后端数据目录：`backend/data/runs/<run_id>`、`backend/data/artifacts/raw_packages/...`、`backend/data/artifacts/raw/...`、`backend/data/artifacts/results/...`、`backend/data/tmp/...`。`manifest.json` 是 artifact 唯一完成标记。
 
-主要后端设置可通过环境变量覆盖，包括 `DATA_ROOT`、`METADATA_STORE`（Phase 1 默认 `json`）、`SQLITE_PATH`、worker/heartbeat 间隔、自动 pipeline、in-process workers、通知机器人、CORS origins，以及预留的 `AUTH_ENABLED`/OIDC 配置占位。测试可安全覆盖 `settings.data_root` 使用隔离临时目录。
+主要后端设置可通过环境变量覆盖，包括 `DATA_ROOT`、`METADATA_STORE`（Phase 1 默认 `json`）、`SQLITE_PATH`、`ARTIFACT_COMPRESSION`（`none` 默认，或 `gzip`）、`ARTIFACT_COMPRESSION_LEVEL`（默认 `1`）、worker/heartbeat 间隔、自动 pipeline、in-process workers、通知机器人、CORS origins，以及预留的 `AUTH_ENABLED`/OIDC 配置占位。测试可安全覆盖 `settings.data_root` 使用隔离临时目录。
 
 默认 demo 模式会在 FastAPI lifespan 中启动周期触发器和 in-process workers，后端启动后会自动产出结果。
 
@@ -63,11 +63,12 @@ npm run dev
 - `GET /api/health`
 - `GET /api/health/ready`：检查 data root；SQLite 模式还检查 DB 连接
 - `GET /api/metrics`：JSON 指标快照（metadata store、job/step status、queued/running 等）
-- `GET /api/results`：返回已完成且 manifest 校验通过的结果列表
+- `GET /api/results`：返回已完成结果列表和小型 summary，不读取完整分析报告
 - `POST /api/jobs`：手动立即拉包分析，body 可为空；可传 `{ "params": { "simulate_fail_stage": "analyze", "delay_ms": 500, "force_refresh": false } }`
 - `GET /api/jobs` / `GET /api/jobs/{run_id}`
 - `POST /api/jobs/{run_id}/retry`：失败任务重试，并移除模拟失败参数，复用已成功 raw
-- `GET /api/results/{run_id}`：成功后返回 `result.json`，未完成返回 409
+- `GET /api/results/{run_id}`：成功后返回安全展示 payload（summary/chart/preview 和完整报告 artifact metadata/download_url），未完成返回 409
+- `GET /api/results/{run_id}/download`：下载完整分析报告 artifact；若启用 gzip，则按存储形态返回 `.json.gz`/`application/gzip`
 - `GET /api/cache/status`
 
 ## 常用验证
@@ -79,6 +80,12 @@ npm run build
 ```
 
 Smoke 建议：启动后等待 scheduled job 产生结果；手动 POST 创建 manual job 并查看结果列表新增；创建 `simulate_fail_stage=analyze` 验证 failed；调用 retry 验证成功且 raw 复用。
+
+## Large JSON artifacts
+
+完整分析报告仍作为单个 JSON artifact 保存，不做 JSON splitting/JSONL。默认 `ARTIFACT_COMPRESSION=none` 保持 demo 兼容；生产可设置 `ARTIFACT_COMPRESSION=gzip` 和 `ARTIFACT_COMPRESSION_LEVEL=1` 压缩 `AnalyzeFilter` 的完整 `result.json` 为 `result.json.gz`。普通 results API 只读取 summary/preview，完整报告通过 download endpoint 以原始存储字节流下载。
+
+限制：本阶段改善存储、hash 和 API/UI 展示安全性，但 raw/unzip/analyze/compare 仍会整体解析 JSON；还不是针对 500MB 生成/比较的全链路 streaming-safe 实现。上线前请用代表性数据手工计时 gzip level 1，例如对同一批数据分别运行 `ARTIFACT_COMPRESSION=none` 与 `ARTIFACT_COMPRESSION=gzip ARTIFACT_COMPRESSION_LEVEL=1` 的 pipeline，记录 analyze 耗时、artifact 大小和下载行为。
 
 ## Observability / Auth / Deployment
 

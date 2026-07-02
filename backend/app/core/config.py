@@ -39,6 +39,8 @@ class Settings:
     oidc_audience = os.getenv("OIDC_AUDIENCE", "")
     oidc_jwks_url = os.getenv("OIDC_JWKS_URL", "")
     auth_trusted_header_enabled = _bool("AUTH_TRUSTED_HEADER_ENABLED", False)
+    artifact_compression = os.getenv("ARTIFACT_COMPRESSION", "none").lower()
+    artifact_compression_level = int(os.getenv("ARTIFACT_COMPRESSION_LEVEL", "1"))
 
 
 settings = Settings()

@@ -94,6 +94,11 @@
               </article>
             </div>
 
+            <p v-if="result.download_url" class="muted">
+              完整报告：<a :href="downloadUrl" download>下载 JSON artifact</a>
+              <span v-if="result.full_report_artifact"> · {{ result.full_report_artifact.compression || 'none' }} · {{ result.full_report_artifact.size_bytes || result.full_report_artifact.compressed_size_bytes || '-' }} bytes</span>
+            </p>
+
             <h3>Phrase 频次</h3>
             <div v-if="result.chart_data?.length" class="phrase-chart">
               <div v-for="row in result.chart_data" :key="row.label" class="bar-row">
@@ -231,7 +236,7 @@
             </div>
 
             <div class="json-heading">
-              <h3>完整差异 JSON</h3>
+              <h3>差异预览 JSON</h3>
               <span class="muted">拖动下方把手调整预览高度</span>
             </div>
             <div class="json-preview" :class="{ 'is-resizing': resizing === 'json' }" :style="{ '--json-height': `${jsonHeight}px` }">
@@ -296,7 +301,7 @@
 </template>
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
-import { compareReports, createJob, getCacheStatus, getJob, getResult, listJobs, listResults, retryJob } from '../api/jobs'
+import { compareReports, createJob, getCacheStatus, getJob, getResult, listJobs, listResults, retryJob, resultDownloadUrl } from '../api/jobs'
 const jobs=ref([]), results=ref([]), current=reactive({pipeline:null,steps:[]}), currentId=ref(null), result=ref(null), error=ref(''), cache=reactive({}), loading=ref(false), polling=ref(false)
 const activeMode=ref('single')
 const compareLeftId=ref(''), compareRightId=ref(''), compareLoading=ref(false), compareError=ref(''), compareResult=ref(null)
@@ -353,6 +358,7 @@ const shortId=id=> id ? String(id).slice(0, 8) : '-'
 const reportLabel=item=> `${item.batch_id || shortId(item.run_id)} · ${item.trigger || 'manual'} · ${item.finished_at || shortId(item.run_id)}`
 const compareTitle=side=> side?.label || side?.run_id || '-'
 const maxPhrase=computed(()=>Math.max(1, ...(result.value?.chart_data || []).map(row=>Number(row.value) || 0)))
+const downloadUrl=computed(()=>result.value?.download_url || (currentId.value ? resultDownloadUrl(currentId.value) : ''))
 const barWidth=value=>Math.max(6, Math.round(((Number(value) || 0) / maxPhrase.value) * 100))
 const compareDisabled=computed(()=>results.value.length<2 || !compareLeftId.value || !compareRightId.value || compareLeftId.value===compareRightId.value || compareLoading.value)
 const summaryDeltaEntries=computed(()=>Object.entries(compareResult.value?.summary_delta || {}).map(([key,value])=>({key,value})))
@@ -372,7 +378,7 @@ const previewText=computed(()=>{
   if (typeof preview === 'string') return preview
   return JSON.stringify(preview ?? [], null, 2)
 })
-const comparePreviewText=computed(()=>JSON.stringify(compareResult.value ?? {}, null, 2))
+const comparePreviewText=computed(()=>JSON.stringify(compareResult.value ? { left: compareResult.value.left, right: compareResult.value.right, summary_delta: compareResult.value.summary_delta, phrase_delta: phraseDeltaRows.value.slice(0, 20), category_delta: categoryDeltaRows.value.slice(0, 20), record_diff: recordDiff.value, metadata: compareResult.value.metadata } : {}, null, 2))
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,value))
 function beginResize(type, event){
   event.preventDefault()

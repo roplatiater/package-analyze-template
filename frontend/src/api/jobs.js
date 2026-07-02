@@ -8,6 +8,7 @@ export const listJobs = () => request('/api/jobs')
 export const getJob = (id) => request(`/api/jobs/${id}`)
 export const retryJob = (id) => request(`/api/jobs/${id}/retry`, { method: 'POST' })
 export const getResult = (id) => request(`/api/results/${id}`)
+export const resultDownloadUrl = (id) => `/api/results/${id}/download`
 export const listResults = () => request('/api/results')
 export const getCacheStatus = () => request('/api/cache/status')
 export const compareReports = (leftId, rightId) => request('/api/compare', {
